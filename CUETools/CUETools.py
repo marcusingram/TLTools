@@ -113,16 +113,28 @@ class PyTFM:
         self.donetfm=0
         self.donelog=0
 
-    def setRefraction(self,kind,**kwargs):
-        if 'Velocity2' in kwargs:
-            self.V2 = kwargs['Velocity2']
-            self.Params.slow2 = 1/self.V2
-        self.refractionType = kind
-        if kind is not 0 and not self.V2:
-            raise Exception('You need to define a second wave speed before you enable refraction')
+    def setRefraction(self,**kwargs):
         self.donecoeffs = 0
         self.donetfm=0
         self.donelog=0
+        if 'Velocity2' in kwargs:
+            self.V2 = kwargs['Velocity2']
+            self.Params.slow2 = 1/self.V2
+        if 'RefractionType' not in kwargs:
+            self.refractionType = 0
+            return
+        testStr = str.lower(kwargs['RefractionType'])
+        if testStr == 'none':
+            self.refractionType = 0
+        elif testStr == 'flat':
+            self.refractionType = 1
+        elif testStr == 'peritem':
+            self.refractionType = 2
+        else:
+            raise Exception('Unknown refraction type')   
+        if self.refractionType is not 0 and not self.V2:
+            raise Exception('You need to define a second wave speed before you enable refraction')
+        
 
     def setImage(self,**kwargs):
         squares = ['nPixels','yExtend','zExtend']
@@ -228,7 +240,7 @@ class PyTFM:
         if 'type' not in kwargs:
             kwargs['type'] = 'log'
         if kwargs['type'] == 'linear':
-             if not self.donetfm:
+            if not self.donetfm:
                 try:
                     self.processImage()
                 except:
