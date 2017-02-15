@@ -73,10 +73,12 @@ class PyTFM:
         self.donetfm=0
         self.donelog=0
 
-    def buildProbe(self,n_elem,pitch):
+    def buildProbe(self,pitch):
+        if not self.doneFMCupload:
+            raise Exception('Upload the FMC first so we know how big to make the array')
         start = 0
-        stop = pitch*(n_elem-1)
-        y_dim = np.linspace(start,stop,n_elem)
+        stop = pitch*(self.n_elem-1)
+        y_dim = np.linspace(start,stop,self.n_elem)
         self.Array = np.zeros((3,n_elem)).astype(np.float32)
         self.Array[1] = y_dim
         self.Array[1] = self.Array[1] - np.mean(self.Array[1])

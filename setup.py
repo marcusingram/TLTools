@@ -5,7 +5,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(name='CUETools',
-      version='0.5.0',
+      version='0.5.1',
       description='Tools for processing Ultrasonic NDT data',
       author='Timothy Lardner',
       author_email='timlardner@gmail.com',
