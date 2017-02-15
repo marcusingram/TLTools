@@ -228,6 +228,11 @@ class PyTFM:
         if 'type' not in kwargs:
             kwargs['type'] = 'log'
         if kwargs['type'] == 'linear':
+             if not self.donetfm:
+                try:
+                    self.processImage()
+                except:
+                    raise Exception('Couldn''t produce a linear TFM image')
             plt.imshow(self.TFM_lin,extent=(min(self.y),max(self.y),min(self.z),max(self.z)),cmap=parula.parula_map)
         else:
             if not self.donelog:
