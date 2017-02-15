@@ -5,7 +5,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(name='CUETools',
-      version='0.3.1',
+      version='0.3.5',
       description='Tools for processing Ultrasonic NDT data',
       author='Timothy Lardner',
       author_email='timlardner@gmail.com',
@@ -15,7 +15,7 @@ setup(name='CUETools',
       install_requires=[
           'pycuda','matplotlib','numpy'
       ],
-      long_description=read('README.md'),
+      long_description='This is a test of TFM awesomeness',
       package_data={'': ['TFMKernel.cu']},
       classifiers=[
         "Development Status :: 4 - Beta",

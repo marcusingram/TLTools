@@ -1,21 +1,20 @@
 import time
 import sys
 import os
+import inspect
 import pycuda.autoinit
 import pycuda.driver as cuda
 import numpy as np
 from pycuda.compiler import SourceModule
 import matplotlib.pyplot as plt
-import parula
-from gpustruct import GPUStruct
+from CUETools import parula
+from CUETools import gpustruct
 import warnings
-from matplotlib.colors import LinearSegmentedColormap
 
 class PyTFM:
     def __init__(self):
-        
         # Load up our kernel
-        with open('TFMKernel.cu','r') as KernelFile:
+        with open(os.path.dirname(inspect.getfile(gpustruct))+'/'+'TFMKernel.cu','r') as KernelFile:
             KernelString = KernelFile.read()
         to_include = []
         try:
@@ -30,7 +29,7 @@ class PyTFM:
         self.FMC = []
         self.V2 = []
 
-        self.Params =    GPUStruct([(np.float32,'x1', 0), # Placeholder
+        self.Params = gpustruct.GPUStruct([(np.float32,'x1', 0), # Placeholder
                                     (np.float32,'y1', 0), # Placeholder
                                     (np.float32,'z1', 0), # Placeholder
                                     (np.float32,'x2', 0), # Placeholder
