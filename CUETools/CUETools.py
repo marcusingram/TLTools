@@ -73,6 +73,20 @@ class PyTFM:
         self.donetfm=0
         self.donelog=0
 
+    def buildProbe(self,n_elem,pitch):
+        start = 0
+        stop = pitch*(n_elem-1)
+        y_dim = np.linspace(start,stop,n_elem)
+        self.Array = np.zeros((3,n_elem)).astype(np.float32)
+        self.Array[1] = y_dim
+        self.Array[1] = self.Array[1] - np.mean(self.Array[1])
+        self.ArrayGPU = self.Array.T.flatten()
+        self.doneProbeupload = 1
+        self.setimage = 0
+        self.donecoeffs = 0
+        self.donetfm=0
+        self.donelog=0
+        
     def uploadProbe(self,Array):
         if not self.doneFMCupload:
             raise Exception('Upload the FMC dataset first')
