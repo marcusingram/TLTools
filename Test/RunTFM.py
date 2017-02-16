@@ -1,5 +1,5 @@
 #%matplotlib inline
-from CUETools import CUETools
+from TLTools import Imaging
 import scipy.io as sio
 
 FMC_file = 'TestData.mat'
@@ -8,7 +8,7 @@ FMC_dataset =  FMC['FMC'].T
 ProbeElementLocations = FMC['Array']
 TStart = FMC['FMCTimeStart']
 
-TFM = CUETools.PyTFM()
+TFM = Imaging.PyTFM()
 TFM.uploadFMC(FMC_dataset)
 TFM.uploadProbe(ProbeElementLocations)
 TFM.setParameters(Velocity1=5790,Velocity2=1496,Fs=72792400,Ts=TStart)

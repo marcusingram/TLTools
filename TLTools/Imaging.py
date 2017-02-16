@@ -7,8 +7,8 @@ import pycuda.driver as cuda
 import numpy as np
 from pycuda.compiler import SourceModule
 import matplotlib.pyplot as plt
-from CUETools import parula
-from CUETools import gpustruct
+from TLTools import parula
+from TLTools import gpustruct
 import warnings
 
 class PyTFM:
@@ -79,7 +79,7 @@ class PyTFM:
         start = 0
         stop = pitch*(self.n_elem-1)
         y_dim = np.linspace(start,stop,self.n_elem)
-        self.Array = np.zeros((3,n_elem)).astype(np.float32)
+        self.Array = np.zeros((3,self.n_elem)).astype(np.float32)
         self.Array[1] = y_dim
         self.Array[1] = self.Array[1] - np.mean(self.Array[1])
         self.ArrayGPU = self.Array.T.flatten()
@@ -255,6 +255,10 @@ class PyTFM:
     def printTFM(self,**kwargs):
         if 'type' not in kwargs:
             kwargs['type'] = 'log'
+        if 'range' in kwargs:
+            dyrange = kwargs['range']
+        else:
+            dyrange = 20    
         if kwargs['type'] == 'linear':
             if not self.donetfm:
                 try:
@@ -269,7 +273,7 @@ class PyTFM:
                 except:
                     raise Exception('Couldn''t produce a logarithmic TFM image')
             plt.imshow(self.TFM_log,extent=(min(self.y),max(self.y),min(self.z),max(self.z)),cmap=parula.parula_map)
-            plt.clim(-20,0)
+            plt.clim(-dyrange,0)
         plt.colorbar()
         plt.title('TFM using Coefficients')
         locs, labels = plt.xticks()
