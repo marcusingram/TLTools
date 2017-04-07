@@ -7,6 +7,7 @@ class FMC:
     def __init__(self, Fs, Ts):
         self.Fs = Fs
         self.time_start = Ts
+        self.FMC = []
 
     def _uploadStream(self, I16):
         self.Stream = I16
