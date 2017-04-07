@@ -65,6 +65,8 @@ class GPUStruct(object):
         # set a dict for holding nbytes
         self.__nbytes = {}
         self.__ptrs = {}
+        self.__packstr = ''
+        self.__unpacked = ''
         
         # loop over objs, setting attributes from kwargs
         for fmt,obj in self.__objs:
@@ -152,7 +154,6 @@ class GPUStruct(object):
         return self.__packstr
 
     def _pack(self):
-        packed = ''
         self.__fmt = ''
         topack = []
         for fmt,obj in self.__objs:

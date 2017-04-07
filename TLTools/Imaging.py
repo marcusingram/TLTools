@@ -20,7 +20,7 @@ class PyTFM:
         try:
             if sys.getwindowsversion().major is 10:
                 to_include.append('C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.10240.0\\ucrt')
-        except(AttributeError):
+        except AttributeError:
             pass
         self.Kernel = SourceModule(KernelString, include_dirs=to_include)
 
@@ -63,6 +63,12 @@ class PyTFM:
         self.donetfm=0
         self.donelog=0
 
+        # Unnecessary stuff to keep PyCharm happy...
+        self.n_elem = 0
+        self.sample_length = 0
+        self.Fs = 0
+        self.Ts = 0
+
     def TLuploadFMC(self,FMC):
         if FMC.Unpacked is False:
             FMC.unpack()
@@ -71,8 +77,8 @@ class PyTFM:
         self.n_elem = np.floor(x).astype(np.int32)
         self.sample_length = np.int32(len(thisFMC[0]))
         self.FMC = thisFMC.astype(np.float32).flatten()
-        self.Fs = FMC.Fs
-        self.Ts = FMC.time_start
+        self.Fs = np.float32(FMC.Fs)
+        self.Ts = np.float32(FMC.time_start)
         self.doneFMCupload = 1
         self.TLFMC = 1
         self.donetfm=0
@@ -133,7 +139,7 @@ class PyTFM:
         try:
             self.V1 = np.float32(kwargs['Velocity1'])
             self.Params.slow1 = 1/self.V1
-        except(KeyError) as e:
+        except KeyError:
              raise Exception('One or more neccessary variables were not defined')
         if 'Ts' not in kwargs and self.TLFMC is 0:
             raise Exception('Time start was not defined')
@@ -248,7 +254,7 @@ class PyTFM:
         TimeBuffer = np.zeros((self.ny, self.n_elem, 33)).astype(np.float32).flatten()
         CoeffArray = np.zeros((self.ny,self.n_elem,5)).astype(np.float32).flatten()
         cuda.memcpy_dtoh(TimeBuffer, self.TimeBuffer_gpu)
-        cuda.memcpy_dtoh(CoeffArray, self.self.Coeff_gpu)
+        cuda.memcpy_dtoh(CoeffArray, self.Coeff_gpu)
         CoeffBuf = np.reshape(CoeffArray, (self.ny, self.n_elem, 5))
         timebuf = np.reshape(TimeBuffer, (self.ny, self.n_elem, 33))
         i = kwargs['elem']  # Array element
@@ -315,6 +321,7 @@ class PyTFM:
         plt.title('TFM using Coefficients')
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=45)
+        plt.show()
 
     def printGPUstats(self):
         (free,total)=cuda.mem_get_info()

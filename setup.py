@@ -5,15 +5,15 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(name='TLTools',
-      version='0.6.1',
-      description='Tools for processing Ultrasonic NDT data',
+      version='0.7.0',
+      description='Tools for acquiring and processing Ultrasonic NDT data',
       author='Timothy Lardner',
       author_email='timlardner@gmail.com',
       url='https://github.com/timlardner',
       license = "MIT",
       packages=['TLTools'],
       install_requires=[
-          'pycuda','matplotlib','numpy'
+          'pycuda','matplotlib','numpy','viscm','scipy'
       ],
       long_description='This is a test of TFM awesomeness',
       package_data={'': ['TFMKernel.cu']},
