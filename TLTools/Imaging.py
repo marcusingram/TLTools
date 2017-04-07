@@ -191,9 +191,9 @@ class PyTFM:
             raise Exception('We can''t calculate the coefficients without first defining everything necessary')
         TimeBuffer = np.zeros((self.ny,self.n_elem,33)).astype(np.float32).flatten()
         TimeBufferSize = TimeBuffer.nbytes
-        TimeBuffer_gpu = cuda.mem_alloc(TimeBufferSize)
+        self.TimeBuffer_gpu = cuda.mem_alloc(TimeBufferSize)
         nTimePoints = len(TimeBuffer)
-        ZVector = np.linspace(min(self.z),max(self.z),33).astype(np.float32).flatten()
+        self.ZVector = np.linspace(min(self.z),max(self.z),33).astype(np.float32).flatten()
         self.Params.copy_to_gpu()
         ParamsInput = self.Params.get_ptr()
         gridsizeTime = int(np.ceil(nTimePoints/self.blockSize))
@@ -206,25 +206,39 @@ class PyTFM:
         gridsizeCoeff = int(np.ceil(total_coefflines/self.blockSize))
 
         # Actually do some CUDA magic
-        GenerateTimePoints(TimeBuffer_gpu,cuda.In(ZVector),cuda.In(self.y),cuda.In(self.ArrayGPU),np.int32(self.refractionType),self.n_elem,self.ny,np.int32(nTimePoints),ParamsInput,block=(self.blockSize,1,1), grid=(gridsizeTime,1))
-        GetCoeffs(np.int32(total_coefflines),np.int32(self.n_elem),np.int32(self.ny),cuda.In(ZVector),TimeBuffer_gpu,self.Coeff_gpu,block=(self.blockSize,1,1), grid=(gridsizeCoeff,1))
+        GenerateTimePoints(self.TimeBuffer_gpu,cuda.In(self.ZVector),cuda.In(self.y),cuda.In(self.ArrayGPU),np.int32(self.refractionType),self.n_elem,self.ny,np.int32(nTimePoints),ParamsInput,block=(self.blockSize,1,1), grid=(gridsizeTime,1))
+        GetCoeffs(np.int32(total_coefflines),np.int32(self.n_elem),np.int32(self.ny),cuda.In(self.ZVector),self.TimeBuffer_gpu,self.Coeff_gpu,block=(self.blockSize,1,1), grid=(gridsizeCoeff,1))
 
-        cuda.memcpy_dtoh(TimeBuffer, TimeBuffer_gpu)
-        cuda.memcpy_dtoh(CoeffArray,self.Coeff_gpu)
-        CoeffBuf = np.reshape(CoeffArray,(self.ny,self.n_elem,5))
-        timebuf = np.reshape(TimeBuffer,(self.ny,self.n_elem,33))
-        i=32  # Array element
-        j=40 # Y-position
-        k=8  # Z-position
-        newtime = np.polyval(CoeffBuf[j,i,:],ZVector[k])
-        print('Propagation time for array element',i,'at the y-position of',self.y[j],'and z-position of',ZVector[k],'is',timebuf[j,i,k])
-        print('Same propagation time from the coefficients is',newtime)
-        error_time = np.abs(newtime-timebuf[j,i,k])
-        error_samples = error_time*self.Fs
-        print('Error is',np.abs(newtime-timebuf[j,i,k]),'or',error_samples,'samples')
         self.donecoeffs=1
         self.donetfm=0
         self.donelog=0
+
+    def reportFitError(self,**kwargs):
+        anchor = ['elem','y','z']
+        if not all(term in kwargs for term in anchor):
+            raise Exception('Pass the variables ''elem'', ''y'' and ''z'' to use this function.')
+        if not self.donecoeffs:
+            try:
+                self.doCoeffs()
+            except:
+                raise Exception('The coefficients could not be calculated')
+        TimeBuffer = np.zeros((self.ny, self.n_elem, 33)).astype(np.float32).flatten()
+        CoeffArray = np.zeros((self.ny,self.n_elem,5)).astype(np.float32).flatten()
+        cuda.memcpy_dtoh(TimeBuffer, self.TimeBuffer_gpu)
+        cuda.memcpy_dtoh(CoeffArray, self.self.Coeff_gpu)
+        CoeffBuf = np.reshape(CoeffArray, (self.ny, self.n_elem, 5))
+        timebuf = np.reshape(TimeBuffer, (self.ny, self.n_elem, 33))
+        i = kwargs['elem']  # Array element
+        j = kwargs['y']  # Y-position
+        k = kwargs['z']  # Z-position
+        newtime = np.polyval(CoeffBuf[j, i, :], self.ZVector[k])
+        print('Propagation time for array element', i, 'at the y-position of', self.y[j], 'and z-position of',
+              self.ZVector[k], 'is', timebuf[j, i, k])
+        print('Same propagation time from the coefficients is', newtime)
+        error_time = np.abs(newtime - timebuf[j, i, k])
+        error_samples = error_time * self.Fs
+        print('Error is', np.abs(newtime - timebuf[j, i, k]), 'or', error_samples, 'samples')
+        return np.abs(newtime - timebuf[j, i, k]),error_samples
 
     def doImage(self):
         if not self.donecoeffs:
