@@ -1,4 +1,5 @@
 setup.py
+TLTools/Acquisition.py
 TLTools/Imaging.py
 TLTools/TFMKernel.cu
 TLTools/gpustruct.py
