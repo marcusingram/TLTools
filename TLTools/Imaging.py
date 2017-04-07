@@ -55,10 +55,26 @@ class PyTFM:
 
         # Check what we've done
         self.doneFMCupload = 0
+        self.TLFMC = 0
         self.doneProbeupload = 0
         self.setparams = 0
         self.setimage = 0
         self.donecoeffs = 0
+        self.donetfm=0
+        self.donelog=0
+
+    def TLuploadFMC(self,FMC):
+        if FMC.Unpacked is False:
+            FMC.unpack()
+        thisFMC = FMC.FMC
+        x = np.sqrt(thisFMC.shape[0])
+        self.n_elem = np.floor(x).astype(np.int32)
+        self.sample_length = np.int32(len(thisFMC[0]))
+        self.FMC = thisFMC.astype(np.float32).flatten()
+        self.Fs = FMC.Fs
+        self.Ts = FMC.time_start
+        self.doneFMCupload = 1
+        self.TLFMC = 1
         self.donetfm=0
         self.donelog=0
 
@@ -117,10 +133,17 @@ class PyTFM:
         try:
             self.V1 = np.float32(kwargs['Velocity1'])
             self.Params.slow1 = 1/self.V1
-            self.Fs = np.float32(kwargs['Fs'])
-            self.Ts = np.float32(kwargs['Ts'])
         except(KeyError) as e:
              raise Exception('One or more neccessary variables were not defined')
+        if 'Ts' not in kwargs and self.TLFMC is 0:
+            raise Exception('Time start was not defined')
+        elif 'Ts' in kwargs:
+            self.Ts = np.float32(kwargs['Ts'])
+
+        if 'Fs' not in kwargs and self.TLFMC is 0:
+            raise Exception('Sampling frequency was not defined')
+        elif 'Fs' in kwargs:
+            self.Fs = np.float32(kwargs['Fs'])
         if 'Velocity2' in kwargs:
             self.V2 = kwargs['Velocity2']
             self.Params.slow2 = 1/self.V2

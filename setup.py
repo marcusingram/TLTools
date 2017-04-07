@@ -5,7 +5,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(name='TLTools',
-      version='0.5.4',
+      version='6.0.0',
       description='Tools for processing Ultrasonic NDT data',
       author='Timothy Lardner',
       author_email='timlardner@gmail.com',
