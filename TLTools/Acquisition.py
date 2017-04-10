@@ -1,7 +1,7 @@
 import datetime
 import numpy as np
 from ctypes import windll, c_char_p, c_ushort, c_int, byref, c_ulonglong, c_double
-
+import time
 
 class FMC:
     def __init__(self, Fs, Ts):
@@ -100,8 +100,20 @@ class DSL:
         U64_stp = c_int(0)
         Frame_ID = c_int(self.params['n_frames']-1)
         Sample_ID = c_int(0)
+        Times = []
+        start = time.time()
+        av_count = 10
         for tx in range(self.params['n_tx']):
             for rx in range(self.params['n_rx']):
+                if len(Times) < av_count:
+                    end = time.time()
+                    Times.append(end-start)
+                    start = end
+                elif len(Times) == av_count:
+                    mean_time = np.mean(Times[1:])
+                    remaining = (self.params['n_tx'] * self.params['n_rx'] - av_count)*mean_time
+                    print('Recomputing lookup-table. Approximately {} seconds remaining'.format(np.round(remaining)))
+                    Times.append(-1)
                 self.DSL.GetU64streamIndexAndStep(Frame_ID, c_int(tx), c_int(rx), Sample_ID, self.timeout,
                                                   byref(U64_idx), byref(U64_stp))
                 self.FMC_LUT[tx, rx] = U64_idx.value
