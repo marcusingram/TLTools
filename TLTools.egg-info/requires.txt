@@ -1,3 +1,5 @@
 pycuda
 matplotlib
 numpy
+viscm
+scipy

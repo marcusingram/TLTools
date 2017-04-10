@@ -1,14 +1,14 @@
 Metadata-Version: 1.1
 Name: TLTools
-Version: 0.6.1
-Summary: Tools for processing Ultrasonic NDT data
+Version: 1.0.0
+Summary: Tools for acquiring and processing Ultrasonic NDT data
 Home-page: https://github.com/timlardner
 Author: Timothy Lardner
 Author-email: timlardner@gmail.com
 License: MIT
 Description: This is a test of TFM awesomeness
 Platform: UNKNOWN
-Classifier: Development Status :: 4 - Beta
+Classifier: Development Status :: 5 - Production/Stable
 Classifier: Topic :: Utilities
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Intended Audience :: Developers

@@ -70,9 +70,7 @@ class PyTFM:
         self.Ts = 0
 
     def TLuploadFMC(self,FMC):
-        if FMC.Unpacked is False:
-            FMC.unpack()
-        thisFMC = FMC.FMC
+        thisFMC = FMC.get_FMC()
         x = np.sqrt(thisFMC.shape[0])
         self.n_elem = np.floor(x).astype(np.int32)
         self.sample_length = np.int32(len(thisFMC[0]))
@@ -278,8 +276,8 @@ class PyTFM:
         TFM_coeff = self.Kernel.get_function("TFM_coeff")
         t = time.time()
         TFM_coeff(cuda.Out(self.TFM_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), self.n_elem, self.Fs, cuda.In(self.z), self.nz, self.sample_length, self.Ts, self.Coeff_gpu,block=(self.blockSize,1,1), grid=(self.gridSize,1))
-        elapsed = time.time() - t
-        print('TFM took %s seconds' % float('%.3g' % elapsed))
+        #elapsed = time.time() - t
+        #print('TFM took %s seconds' % float('%.3g' % elapsed))
         self.TFM_lin = self.TFM_image.reshape((self.ny,self.nz))
         self.donetfm = 1
         return self.TFM_lin
@@ -294,6 +292,14 @@ class PyTFM:
         TFM2 = abs(TFM2)
         self.TFM_log = 20*np.log10(TFM2)
         self.donelog=1
+
+    def get_log_TFM(self):
+        if not self.donelog:
+            try:
+                self.processImage()
+            except:
+                raise Exception('Couldn''t produce a logarithmic TFM image')
+        return self.TFM_log
 
     def printTFM(self,**kwargs):
         if 'type' not in kwargs:
@@ -318,10 +324,9 @@ class PyTFM:
             plt.imshow(self.TFM_log,extent=(min(self.y),max(self.y),min(self.z),max(self.z)),cmap=parula.parula_map)
             plt.clim(-dyrange,0)
         plt.colorbar()
-        plt.title('TFM using Coefficients')
+        plt.title('TFM Image')
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=45)
-        plt.show()
 
     def printGPUstats(self):
         (free,total)=cuda.mem_get_info()
