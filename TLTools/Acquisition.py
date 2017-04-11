@@ -150,8 +150,10 @@ class DSL:
     def acquire_multiple_FMCs(self, count):
         self._check_data_params()
         FMCs = []
+        start = time.time()
         for _ in range(count):
-            FMCs.append(self.getU64Stream())
+            FMCs.append(self._get_u64_stream())
+        print('Recorded {} FMC datasets in {} seconds'.format(count,np.round(time.time()-start)))
         return FMCs
 
     def acquire_single_FMC(self):

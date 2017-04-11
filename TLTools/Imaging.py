@@ -82,7 +82,7 @@ class PyTFM:
         self.donetfm=0
         self.donelog=0
 
-    def uploadFMC(self,FMC):
+    def upload_FMC(self,FMC):
         x = np.sqrt(FMC.shape[0])
         self.n_elem = np.floor(x).astype(np.int32)
         self.sample_length = np.int32(len(FMC[0]))
