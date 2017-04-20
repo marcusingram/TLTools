@@ -25,8 +25,8 @@ class FMC:
         self.n_samples = Samples
         self.Unpacked = False
 		
-	def save_to_PNG(self,path):
-		Image.fromarray(self.get_FMC()).save(path, "PNG", compress_level=0,bits=16)
+    def save_to_PNG(self,path):
+        Image.fromarray(self.get_FMC()).save(path, "PNG", compress_level=0,bits=16)
 
     def _get_AScan(self, tx, rx):
         start_sample = self.LookupTable[tx, rx]
