@@ -3,12 +3,14 @@ import numpy as np
 from ctypes import windll, c_char_p, c_ushort, c_int, byref, c_ulonglong, c_double
 import time
 from PIL import Image
+from scipy.signal import butter, filtfilt, buttord
 
 class FMC:
     def __init__(self, Fs, Ts):
         self.Fs = Fs
         self.time_start = Ts
         self.Unpacked = False
+        self.Filtered = False
         self.timestamp = datetime.datetime.utcnow()
 
         self.FMC = []
@@ -16,6 +18,33 @@ class FMC:
         self.LookupTable = []
         self.SampleStep = -1
         self.n_samples = -1
+		
+    def filter_FMC(self,lowcut,highcut):
+        # Backwards compatibility stuff:
+        if not hasattr(self, 'Filtered'):
+            self.Filtered = False
+
+        if self.Filtered:
+            self.Unpacked=False
+
+       # Design filter with parameters...
+        pass_stop_width = 0.8
+        nyq = 0.5 * self.Fs
+        low = lowcut / nyq
+        high = highcut / nyq
+        order = buttord([low, high],[low*pass_stop_width, high*(1+pass_stop_width)],3,30)
+        print('Designing filter with order {}'.format(order[0]))
+        b, a = butter(order[0], [low, high], btype='band')
+        
+        # Apply filter to FMC
+        FMC = self.get_FMC()
+        n_scans = FMC.shape[0]
+        for idx in range(n_scans):
+            a_scan = FMC[idx,:]
+            a_scan = filtfilt(b, a, a_scan)
+            FMC[idx,:] = a_scan
+        self.FMC = FMC
+        self.Filtered=True
 
     def upload_stream(self, I16, LUT, Step, Samples):
         """ Upload the U64 stream (cast to I16s) and everything needed to unpack it """
