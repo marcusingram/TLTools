@@ -2,6 +2,7 @@ import datetime
 import numpy as np
 from ctypes import windll, c_char_p, c_ushort, c_int, byref, c_ulonglong, c_double
 import time
+from PIL import Image
 
 class FMC:
     def __init__(self, Fs, Ts):
@@ -23,6 +24,9 @@ class FMC:
         self.SampleStep = Step
         self.n_samples = Samples
         self.Unpacked = False
+		
+	def save_to_PNG(self,path):
+		Image.fromarray(self.get_FMC()).save(path, "PNG", compress_level=0,bits=16)
 
     def _get_AScan(self, tx, rx):
         start_sample = self.LookupTable[tx, rx]
