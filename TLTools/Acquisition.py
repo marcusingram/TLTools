@@ -1,5 +1,6 @@
 import datetime
 import numpy as np
+import clr
 from ctypes import windll, c_char_p, c_ushort, c_int, byref, c_ulonglong, c_double
 import time
 from PIL import Image
@@ -196,3 +197,67 @@ class DSL:
     @staticmethod
     def _encodeString(string):
         return c_char_p(string.encode('utf-8'))
+
+class Dynaray:    
+    def __init__(self):
+        self.initialised = False
+        
+        clr.AddReference('D:\\Tim\\Git\\Ultravision\\UltraVisionMatlabClientComponent')
+        import UltraVisionMatlabClientComponent 
+        self.UltraVisionRC = UltraVisionMatlabClientComponent.Form1()
+        self.UltraVisionRC.InitRC()
+        try:
+            self.UltraVisionRC.RCM_RCInitDataManager()
+            self.initialised = self.UltraVisionRC.RCM_getPing()
+        except:
+            raise(' Connection to remote marshal failed')
+    def makeOnlineChannel(self):
+        Fs = 100           # MHz
+        time_start = 1     # us
+        time_range = 100   # us
+        voltage = 60       # V
+        pulsetime = 140e-9 # s
+        gain = 40          # dB
+        prf = 1000         # Hz
+        
+        averages = 0       # 
+        label = 'TLTools'  #
+        rectification = 0  #
+        
+        txrxlist = self.makeTxRxList(16)
+        
+        resultChannelDel = self.UltraVisionRC.RCM_RCDeleteOnlineUltrasoundChannel()
+        resultChannelCreate = self.UltraVisionRC.RCM_RCCreateOnlineUltrasoundChannel(txrxlist,voltage, pulsetime,
+                                                                                     gain, time_start, time_range,
+                                                                                     np.int32(averages),np.int32(prf),
+                                                                                     np.int32(Fs),np.int32(rectification),
+                                                                                     label)
+        self.sortBeams()
+        self.UltraVisionRC.RCM_RCSetReadDataList(dl);
+        self.UltraVisionRC.RCM_RCPrepareLastBufferReaders();
+        
+    def getOnlineData(self):
+        ascanlength=self.UltraVisionRC.RCM_RCGetCurrentAscanLength();
+        data=self.UltraVisionRC.RCM_RCReadOnlineAscanData(True);
+        
+    def makeTxRxList(self,n_elem):
+        txrx = np.zeros((2,n_elem**2))
+        for idx_tx in range(n_elem):
+            for idx_rx in range(n_elem):
+                point = idx_tx*n_elem + idx_rx
+                txrx[0,point] = idx_tx
+                txrx[1,point] = idx_rx
+        return txrx.astype(np.int32).flatten()
+    
+    def sortBeams(self):
+        self.datanames=self.UltraVisionRC.RCM_RCGetDataNames()
+        list_of_beams = Zetec.datanames.split('*')
+        datalist = []
+        beamlist = []
+        for idx,beam in enumerate(list_of_beams):
+            if 'channel@1' not in beam or 'ascan@0' not in beam:
+                continue
+            datalist.append(idx)
+            beamlist.append(int(beam.split('@')[3].split('/')[0]))
+        idx = np.argsort(beamlist)
+        self.datalist = np.int32(datalist)[idx]

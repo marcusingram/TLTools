@@ -4,3 +4,4 @@ numpy
 viscm
 scipy
 pillow
+pythonnet
