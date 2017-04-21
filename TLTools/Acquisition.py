@@ -251,7 +251,7 @@ class Dynaray:
     
     def sortBeams(self):
         self.datanames=self.UltraVisionRC.RCM_RCGetDataNames()
-        list_of_beams = Zetec.datanames.split('*')
+        list_of_beams = self.datanames.split('*')
         datalist = []
         beamlist = []
         for idx,beam in enumerate(list_of_beams):
