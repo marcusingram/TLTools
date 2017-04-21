@@ -32,7 +32,7 @@ class FMC:
         nyq = 0.5 * self.Fs
         low = lowcut / nyq
         high = highcut / nyq
-        order = buttord([low, high],[low*pass_stop_width, high*(1+pass_stop_width)],3,30)
+        order = buttord([low, high],[low*pass_stop_width, high*(2-pass_stop_width)],3,30)
         print('Designing filter with order {}'.format(order[0]))
         b, a = butter(order[0], [low, high], btype='band')
         
