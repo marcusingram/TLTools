@@ -288,8 +288,9 @@ class PyTFM:
                 self.doImage()
             except:
                 raise Exception('The TFM image could not be generated at this time')
-        TFM2 = self.TFM_lin / max(self.TFM_lin.flatten())
-        TFM2 = abs(TFM2)
+        
+        TFM2 = abs(self.TFM_lin)
+        TFM2 = TFM2 / max(TFM2.flatten())
         self.TFM_log = 20*np.log10(TFM2)
         self.donelog=1
 
