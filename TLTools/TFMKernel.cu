@@ -1,3 +1,22 @@
+/*******
+
+Developed by Timothy Lardner and Jerzy Dziewierz,
+Centre for Ultrasonic Engineering,
+University of Strathclyde,
+Copyright 2017,
+
+Not to be used or copied without authorization from the authors,
+This superseeds any other licence that may be bundled with this software.
+
+For more information see:
+"Inspection of complex components using 2D arrays and TFM"
+"A design methodology for 2D sparse NDE arrays  using an efficient implementation of refracted - ray TFM"
+
+http://www.cue.ac.uk
+
+*******/
+
+
 #define COEFFGEN_nTimePointsPerLine 33  // 17 points in a line for calculation, 16 for checking the polyfit
 #define classicMinSearch_spread 1e-3
 #define COEFF_SIZE 5
