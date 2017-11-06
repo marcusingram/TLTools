@@ -152,6 +152,10 @@ class DSL:
                                                   byref(U64_idx), byref(U64_stp))
                 self.FMC_LUT[tx, rx] = U64_idx.value
         self.SampleStep = U64_stp.value
+	# The following corrects the order of the LUT values.
+        for rx in range(0,self.params['n_rx'],4):
+        	LUT_values = self.FMC_LUT[:,rx:rx+4]
+        	self.FMC_LUT[:,rx:rx+4] = np.flip(LUT_values,1)
 
     def _get_u64_stream(self):
         """
