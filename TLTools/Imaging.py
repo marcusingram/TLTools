@@ -282,6 +282,19 @@ class PyTFM:
         self.donetfm = 1
         return self.TFM_lin
 
+    def doImage_timeOffset(self,timeDelays):
+        if not self.donecoeffs:
+            try:
+                self.doCoeffs()
+            except:
+                raise Exception('The coefficients could not be calculated for this TFM image')
+        timeDelays = (1.0-timeDelays).astype(np.float32)
+        TFM_coeff = self.Kernel.get_function("TFM_coeff_timeOffset")
+        TFM_coeff(cuda.Out(self.TFM_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), cuda.In(timeDelays), self.n_elem, self.Fs, cuda.In(self.z), self.nz, self.sample_length, self.Ts, self.Coeff_gpu,block=(self.blockSize,1,1), grid=(self.gridSize,1))
+        self.TFM_lin = self.TFM_image.reshape((self.ny,self.nz))
+        self.donetfm = 1
+        return self.TFM_lin
+
     def processImage(self):
         if not self.donetfm:
             try:

@@ -252,6 +252,49 @@ __global__ void TFM(float *dest, float *FMC, float *Elem, int n_elem, float *ydi
   dest[idx] = accumulator;
 }
 
+__global__ void TFM_coeff_timeOffset(float *dest, float *FMC, float *Elem, float *delays, int n_elem, float fs, float *zdim, int nz, int sample_length, float time_start,float* Coeffs)
+{
+  int idx=threadIdx.x+blockDim.x*blockIdx.x;
+
+  float tx_path;
+  float rx_path;
+  float time;
+  float accumulator = 0;
+  int sample_truncated;
+  float sample_weight;
+  int z_location = idx/nz;
+  int y_location = idx%nz;
+  int final_sample;
+  float z_position = zdim[z_location];
+  int tx_coeff_offset;
+  int rx_coeff_offset;
+  float tx_delay;
+
+  for(int i=0; i<n_elem; i++){
+      tx_coeff_offset = 5*y_location*n_elem + 5*i;
+      tx_path = Coeffs[tx_coeff_offset];
+      tx_path = z_position*tx_path + Coeffs[tx_coeff_offset+1];
+      tx_path = z_position*tx_path + Coeffs[tx_coeff_offset+2];
+      tx_path = z_position*tx_path + Coeffs[tx_coeff_offset+3];
+      tx_path = z_position*tx_path + Coeffs[tx_coeff_offset+4];
+      tx_delay = delays[i];
+
+      for(int j=0; j<n_elem;j++){
+         rx_coeff_offset = 5*y_location*n_elem + 5*j;
+         rx_path = Coeffs[rx_coeff_offset];
+         rx_path = z_position*rx_path + Coeffs[rx_coeff_offset+1];
+         rx_path = z_position*rx_path + Coeffs[rx_coeff_offset+2];
+         rx_path = z_position*rx_path + Coeffs[rx_coeff_offset+3];
+         rx_path = z_position*rx_path + Coeffs[rx_coeff_offset+4];
+         sample_truncated = floorf(fminf(fmaxf(((tx_path+rx_path)-time_start)*tx_delay*fs,0.0f),sample_length-2.0f));
+         sample_weight = fminf(fmaxf(time*fs-sample_truncated,0.0f),1.0f);
+         final_sample = (i*n_elem+j)*sample_length + sample_truncated;
+         accumulator = accumulator + (1.0-sample_weight)*FMC[final_sample] + sample_weight*FMC[final_sample+1];
+      }
+  }
+  dest[idx] = accumulator;
+}
+
 __device__ __host__ inline float PerItem_TOF(SurfParam& Params)
 {
 
