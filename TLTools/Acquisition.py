@@ -62,7 +62,9 @@ class FMC:
         start_sample = self.LookupTable[tx, rx]
         skip = self.SampleStep
         end_sample = start_sample + skip*self.n_samples
-        return self.Stream[start_sample:end_sample:skip]
+        aScan = self.Stream[start_sample:end_sample:skip]
+        aScan = aScan - np.mean(aScan)
+        return aScan
 
     def _unpack(self):
         ntx = self.LookupTable.shape[0]
@@ -81,7 +83,6 @@ class FMC:
         else:
             self._unpack()
             return self.FMC
-
 
 class DSL:
     def __init__(self, **kwargs):
