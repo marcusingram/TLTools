@@ -7,8 +7,8 @@ import pycuda.driver as cuda
 import numpy as np
 from pycuda.compiler import SourceModule
 import matplotlib.pyplot as plt
-from TLTools import parula
-from TLTools import gpustruct
+from TLTools.TLTools import parula
+from TLTools.TLTools import gpustruct
 import warnings
 
 class PyTFM:
