@@ -211,9 +211,7 @@ __global__ void TFM_coeff(float *dest, float *FMC, float *Elem, int n_elem, floa
          accumulator = accumulator + (1.0-sample_weight)*FMC[final_sample] + sample_weight*FMC[final_sample+1];
       }
   }
-  dest[idx] = accumulator;
-  //dest[idx] = 1;
-  
+  dest[idx] = accumulator;  
 }
 
 __global__ void TFM_coeff_SCF(float *dest, float *SCF, float *FMC, float *Elem, int n_elem, float fs, float *zdim, int nz, int sample_length, float time_start,float* Coeffs)
@@ -269,7 +267,7 @@ __global__ void TFM_coeff_SCF(float *dest, float *SCF, float *FMC, float *Elem, 
   SCF[idx] = 1 - sqrt(1-(scf_accumulator/(n_elem*n_elem))*(scf_accumulator/(n_elem*n_elem)));
 }
 
-__global__ void TFM_coeff_timeOffset(float *dest, float *FMC, float *Elem, float *delays, int n_elem, float fs, float *zdim, int nz, int sample_length, float time_start,float* Coeffs)
+__global__ void TFM_coeff_timeOffset(float *dest, float *FMC, float *Elem, float *txrx_delays, int n_elem, float fs, float *zdim, int nz, int sample_length, float time_start,float* Coeffs)
 {
   int idx=threadIdx.x+blockDim.x*blockIdx.x;
 
@@ -285,7 +283,7 @@ __global__ void TFM_coeff_timeOffset(float *dest, float *FMC, float *Elem, float
   float z_position = zdim[z_location];
   int tx_coeff_offset;
   int rx_coeff_offset;
-  float tx_delay;
+  float delay;
 
   for(int i=0; i<n_elem; i++){
       tx_coeff_offset = 5*y_location*n_elem + 5*i;
@@ -303,7 +301,8 @@ __global__ void TFM_coeff_timeOffset(float *dest, float *FMC, float *Elem, float
          rx_path = z_position*rx_path + Coeffs[rx_coeff_offset+2];
          rx_path = z_position*rx_path + Coeffs[rx_coeff_offset+3];
          rx_path = z_position*rx_path + Coeffs[rx_coeff_offset+4];
-         sample_truncated = floorf(fminf(fmaxf(((tx_path+rx_path)-time_start)*tx_delay*fs,0.0f),sample_length-2.0f));
+         delay = txrx_delays[i,j];
+         sample_truncated = floorf(fminf(fmaxf(((tx_path+rx_path)-time_start)*delay*fs,0.0f),sample_length-2.0f));
          sample_weight = fminf(fmaxf(time*fs-sample_truncated,0.0f),1.0f);
          final_sample = (i*n_elem+j)*sample_length + sample_truncated;
          accumulator = accumulator + (1.0-sample_weight)*FMC[final_sample] + sample_weight*FMC[final_sample+1];
@@ -312,7 +311,7 @@ __global__ void TFM_coeff_timeOffset(float *dest, float *FMC, float *Elem, float
   dest[idx] = accumulator;
 }
 
-__global__ void TFM_coeff_SCF_timeOffset(float *dest, float *SCF, float *FMC, float *Elem, float *delays, int n_elem, float fs, float *zdim, int nz, int sample_length, float time_start,float* Coeffs)
+__global__ void TFM_coeff_SCF_timeOffset(float *dest, float *SCF, float *FMC, float *Elem, float *txrx_delays, int n_elem, float fs, float *zdim, int nz, int sample_length, float time_start,float* Coeffs)
 {
   int idx=threadIdx.x+blockDim.x*blockIdx.x;
 
@@ -328,7 +327,7 @@ __global__ void TFM_coeff_SCF_timeOffset(float *dest, float *SCF, float *FMC, fl
   float z_position = zdim[z_location];
   int tx_coeff_offset;
   int rx_coeff_offset;
-  float tx_delay;
+  float delay;
   float sample_value;
   float scf_bit;
   float scf_accumulator = 0;
@@ -349,7 +348,8 @@ __global__ void TFM_coeff_SCF_timeOffset(float *dest, float *SCF, float *FMC, fl
          rx_path = z_position*rx_path + Coeffs[rx_coeff_offset+2];
          rx_path = z_position*rx_path + Coeffs[rx_coeff_offset+3];
          rx_path = z_position*rx_path + Coeffs[rx_coeff_offset+4];
-         sample_truncated = floorf(fminf(fmaxf(((tx_path+rx_path)-time_start)*tx_delay*fs,0.0f),sample_length-2.0f));
+         delay = txrx_delays[i,j];
+         sample_truncated = floorf(fminf(fmaxf(((tx_path+rx_path)-time_start)*delay*fs,0.0f),sample_length-2.0f));
          sample_weight = fminf(fmaxf(time*fs-sample_truncated,0.0f),1.0f);
          final_sample = (i*n_elem+j)*sample_length + sample_truncated;
          sample_value = (1.0-sample_weight)*FMC[final_sample] + sample_weight*FMC[final_sample+1];
@@ -384,7 +384,7 @@ __global__ void TFM(float *dest, float *FMC, float *Elem, int n_elem, float *ydi
   int y_location = idx%nz;
   int final_sample;
 
-  for(int i=0; i<n_elem; i++){
+  for(int i=0; i<n_elem;i++){
       tx_location = Elem[3*i+1];
       tx_depth = Elem[3*i+2];
       tx_path = sqrt((tx_location-ydim[y_location])*(tx_location-ydim[y_location]) + (tx_depth-zdim[z_location])*(tx_depth-zdim[z_location]));
@@ -447,7 +447,7 @@ __global__ void TFM_SCF(float *dest, float *SCF, float *FMC, float *Elem, int n_
   SCF[idx] = 1 - sqrt(1-(scf_accumulator/(n_elem*n_elem))*(scf_accumulator/(n_elem*n_elem)));
 }
 
-__global__ void TFM_SCF_timeOffset(float *dest, float *SCF, float *FMC, float *Elem, float *delays, int n_elem, float *ydim, float* zdim, float speed, int ny, int nz,float fs,int sample_length, float time_start)
+__global__ void TFM_timeOffset(float *dest, float *FMC, float *Elem,float *txrx_delays, int n_elem, float *ydim, float* zdim, float speed, int ny, int nz,float fs,int sample_length, float time_start)
 {
   int idx=threadIdx.x+blockDim.x*blockIdx.x;
   float tx_location;
@@ -463,7 +463,43 @@ __global__ void TFM_SCF_timeOffset(float *dest, float *SCF, float *FMC, float *E
   int z_location = idx/nz;
   int y_location = idx%nz;
   int final_sample;
-  float tx_delay;
+  float delay;
+
+  for(int i=0; i<n_elem; i++){
+      tx_location = Elem[3*i+1];
+      tx_depth = Elem[3*i+2];
+      tx_path = sqrt((tx_location-ydim[y_location])*(tx_location-ydim[y_location]) + (tx_depth-zdim[z_location])*(tx_depth-zdim[z_location]));
+      for(int j=0; j<n_elem;j++){
+         rx_location = Elem[3*j+1];
+         rx_depth = Elem[3*j+2];
+         delay = txrx_delays[i,j];
+         rx_path = sqrt((rx_location-ydim[y_location])*(rx_location-ydim[y_location]) + (rx_depth-zdim[z_location])*(rx_depth-zdim[z_location]));
+         sample_truncated = floorf(fminf(fmaxf(((tx_path+rx_path) / speed - time_start)*delay*fs,0.0f),sample_length-2.0f));
+         sample_weight = fminf(fmaxf(time*fs-sample_truncated,0.0f),1.0f);
+         final_sample = (i*n_elem+j)*sample_length + sample_truncated;
+         accumulator = accumulator + (1.0-sample_weight)*FMC[final_sample] + sample_weight*FMC[final_sample+1];
+  }
+  dest[idx] = accumulator;
+}
+}
+
+__global__ void TFM_SCF_timeOffset(float *dest, float *SCF, float *FMC, float *Elem, float *txrx_delays, int n_elem, float *ydim, float* zdim, float speed, int ny, int nz,float fs,int sample_length, float time_start)
+{
+  int idx=threadIdx.x+blockDim.x*blockIdx.x;
+  float tx_location;
+  float rx_location;
+  float tx_depth;
+  float rx_depth;
+  float tx_path;
+  float rx_path;
+  float time;
+  float accumulator = 0;
+  int sample_truncated;
+  float sample_weight;
+  int z_location = idx/nz;
+  int y_location = idx%nz;
+  int final_sample;
+  float delay;
   float sample_value;
   float scf_bit;
   float scf_accumulator = 0;
@@ -476,8 +512,9 @@ __global__ void TFM_SCF_timeOffset(float *dest, float *SCF, float *FMC, float *E
       for(int j=0; j<n_elem;j++){
          rx_location = Elem[3*j+1];
          rx_depth = Elem[3*j+2];
+         delay = txrx_delays[i,j];
          rx_path = sqrt((rx_location-ydim[y_location])*(rx_location-ydim[y_location]) + (rx_depth-zdim[z_location])*(rx_depth-zdim[z_location]));
-         sample_truncated = floorf(fminf(fmaxf(((tx_path+rx_path) / speed - time_start)*tx_delay*fs,0.0f),sample_length-2.0f));
+         sample_truncated = floorf(fminf(fmaxf(((tx_path+rx_path) / speed - time_start)*delay*fs,0.0f),sample_length-2.0f));
          sample_weight = fminf(fmaxf(time*fs-sample_truncated,0.0f),1.0f);
          final_sample = (i*n_elem+j)*sample_length + sample_truncated;
          sample_value = (1.0-sample_weight)*FMC[final_sample] + sample_weight*FMC[final_sample+1];

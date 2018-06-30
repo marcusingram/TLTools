@@ -75,12 +75,18 @@ class PyTFM:
         # This will delete the CUDA attributes to enable Pickling of the TFM class, 
         # unfortunately it is not possible to serialise the data without removing these first. 
         d = dict(self.__dict__)
-        del d['Kernel']
-        del d['Params']
-        if self.Coeff_gpu:
-            del d['Coeff_gpu']
-        if self.TimeBuffer_gpu:
-            del d['TimeBuffer_gpu']
+        x = getattr(self, 'Kernel', None)
+        if not x is None:
+            del d['Kernel']
+        x = getattr(self, 'Params', None)
+        if not x is None:
+            del d['Params']    
+        x = getattr(self, 'Coeff_gpu', None)
+        if not x is None:
+            del d['Coeff_gpu'] 
+        x = getattr(self, 'TimeBuffer_gpu', None)
+        if not x is None:
+            del d['TimeBuffer_gpu'] 
         return d
 
     def TLuploadFMC(self,FMC):
@@ -132,9 +138,9 @@ class PyTFM:
         self.Array[1] = self.Array[1] - np.mean(self.Array[1])
         # We need the unflattened array for later
         self.ArrayGPU = self.Array.T.flatten()
-        self.doneProbeupload = 1
-        self.setimage = 0
-        self.donecoeffs = 0
+        self.doneProbeupload=1
+        self.setimage=0
+        self.donecoeffs=0
         self.donetfm=0
         self.donelog=0
 
@@ -143,7 +149,7 @@ class PyTFM:
             raise Exception('Upload the array first')
         self.Array[2,:] = distance
         self.ArrayGPU = self.Array.T.flatten()
-        self.donecoeffs = 0
+        self.donecoeffs=0
         self.donetfm=0
         self.donelog=0
 
@@ -192,7 +198,6 @@ class PyTFM:
         if self.refractionType is not 0 and not self.V2:
             raise Exception('You need to define a second wave speed before you enable refraction')
         
-
     def setImage(self,**kwargs):
         squares = ['nPixels','yExtend','zExtend']
         anchor1 = ['y0','dy','y1','z0','dz','z1']
@@ -286,34 +291,37 @@ class PyTFM:
         do_timeOffset = False
         do_SCF = False
         self.doneTFM = False
-        if 'delayFactor' in kwargs:
+        if 'txrx_delays' in kwargs:
             do_timeOffset = True
-            timeDelays = kwargs['delayFactor']
-            timeDelays = 1/((1-timeDelays).astype(np.float32))
+            txrx_delays = kwargs['txrx_delays']
+            txrx_delays = 1.0/((1.0-txrx_delays).astype(np.float32))
+
         if 'SCF' in kwargs:
             do_SCF = kwargs['SCF']
 
         if do_timeOffset == True and do_SCF == True:
             TFM_func = self.Kernel.get_function("TFM_SCF_timeOffset")
-            TFM_func(cuda.Out(self.TFM_image), cuda.Out(self.SCF_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), cuda.In(timeDelays), self.n_elem, cuda.In(self.y), cuda.In(self.z), self.V1, self.ny, self.nz, self.Fs, self.sample_length, self.Ts,block=(self.blockSize,1,1), grid=(self.gridSize,1))
-            self.SCF_lin = self.SCF_image.reshape((self.ny,self.nz))
+            TFM_func(cuda.Out(self.TFM_image), cuda.Out(self.SCF_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), cuda.In(txrx_delays), self.n_elem, cuda.In(self.y), cuda.In(self.z), self.V1, self.ny, self.nz, self.Fs, self.sample_length, self.Ts,block=(self.blockSize,1,1), grid=(self.gridSize,1))
+            self.SCF_lin = np.rot90(self.SCF_image.reshape((self.ny,self.nz)),1)
+            self.SCF_lin[self.SCF_lin==0] = 1.0e-9 # prevents dead pixels
             self.doneTFM = True
 
         elif do_timeOffset == True and self.doneTFM == False:
             TFM_func = self.Kernel.get_function("TFM_timeOffset")
-            TFM_func(cuda.Out(self.TFM_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), cuda.In(timeDelays), self.n_elem, cuda.In(self.y), cuda.In(self.z), self.V1, self.ny, self.nz, self.Fs, self.sample_length, self.Ts,block=(self.blockSize,1,1), grid=(self.gridSize,1))
+            TFM_func(cuda.Out(self.TFM_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), cuda.In(txrx_delays), self.n_elem, cuda.In(self.y), cuda.In(self.z), self.V1, self.ny, self.nz, self.Fs, self.sample_length, self.Ts,block=(self.blockSize,1,1), grid=(self.gridSize,1))
             self.doneTFM = True
 
         elif do_SCF == True and self.doneTFM == False:
             TFM_func = self.Kernel.get_function("TFM_SCF")
             TFM_func(cuda.Out(self.TFM_image), cuda.Out(self.SCF_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), self.n_elem, cuda.In(self.y), cuda.In(self.z), self.V1, self.ny, self.nz, self.Fs, self.sample_length, self.Ts,block=(self.blockSize,1,1), grid=(self.gridSize,1))
-            self.SCF_lin = self.SCF_image.reshape((self.ny,self.nz))
+            self.SCF_lin = np.rot90(self.SCF_image.reshape((self.ny,self.nz)),1)
+            self.SCF_lin[self.SCF_lin==0] = 1.0e-9 # prevents dead pixels
             self.doneTFM = True
 
         else:
             TFM_func = self.Kernel.get_function("TFM")
             TFM_func(cuda.Out(self.TFM_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), self.n_elem, cuda.In(self.y), cuda.In(self.z), self.V1, self.ny, self.nz, self.Fs, self.sample_length, self.Ts,block=(self.blockSize,1,1), grid=(self.gridSize,1))
-        self.TFM_lin = self.TFM_image.reshape((self.ny,self.nz))
+        self.TFM_lin = np.rot90(self.TFM_image.reshape((self.ny,self.nz)),1)
         self.doneTFM = True
 
     def doTFM_coeff(self,**kwargs):
@@ -325,45 +333,56 @@ class PyTFM:
         do_timeOffset = False
         do_SCF = False
         self.doneTFM = False
-        if 'delayFactor' in kwargs:
+        if 'txrx_delays' in kwargs:
             do_timeOffset = True
-            timeDelays = kwargs['delayFactor']
-            timeDelays = 1/((1-timeDelays).astype(np.float32))
+            txrx_delays = kwargs['txrx_delays']
+            txrx_delays = 1.0/((1.0-txrx_delays).astype(np.float32))
         if 'SCF' in kwargs:
             do_SCF = kwargs['SCF']
 
         if do_timeOffset == True and do_SCF == True:
             TFM_coeff_func = self.Kernel.get_function("TFM_coeff_SCF_timeOffset")
-            TFM_coeff_func(cuda.Out(self.TFM_image), cuda.Out(self.SCF_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), cuda.In(timeDelays), self.n_elem, self.Fs, cuda.In(self.z), self.nz, self.sample_length, self.Ts, self.Coeff_gpu,block=(self.blockSize,1,1), grid=(self.gridSize,1))
-            self.SCF_lin = self.SCF_image.reshape((self.ny,self.nz))
+            TFM_coeff_func(cuda.Out(self.TFM_image), cuda.Out(self.SCF_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), cuda.In(txrx_delays), self.n_elem, self.Fs, cuda.In(self.z), self.nz, self.sample_length, self.Ts, self.Coeff_gpu,block=(self.blockSize,1,1), grid=(self.gridSize,1))
+            self.SCF_lin = np.rot90(self.SCF_image.reshape((self.ny,self.nz)),1)
+            self.SCF_lin[self.SCF_lin==0] = 1.0e-9 # prevents dead pixels
             self.doneTFM = True
 
         elif do_timeOffset == True and self.doneTFM == False:
             TFM_coeff_func = self.Kernel.get_function("TFM_coeff_timeOffset")
-            TFM_coeff_func(cuda.Out(self.TFM_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), cuda.In(timeDelays), self.n_elem, self.Fs, cuda.In(self.z), self.nz, self.sample_length, self.Ts, self.Coeff_gpu,block=(self.blockSize,1,1), grid=(self.gridSize,1))
+            TFM_coeff_func(cuda.Out(self.TFM_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), cuda.In(txrx_delays), self.n_elem, self.Fs, cuda.In(self.z), self.nz, self.sample_length, self.Ts, self.Coeff_gpu,block=(self.blockSize,1,1), grid=(self.gridSize,1))
             self.doneTFM = True
         
         elif do_SCF == True and self.doneTFM == False:
             TFM_coeff_func = self.Kernel.get_function("TFM_coeff_SCF")
             TFM_coeff_func(cuda.Out(self.TFM_image), cuda.Out(self.SCF_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), self.n_elem, self.Fs, cuda.In(self.z), self.nz, self.sample_length, self.Ts, self.Coeff_gpu,block=(self.blockSize,1,1), grid=(self.gridSize,1))
-            self.SCF_lin = self.SCF_image.reshape((self.ny,self.nz))
+            self.SCF_lin = np.rot90(self.SCF_image.reshape((self.ny,self.nz)),1)
+            self.SCF_lin[self.SCF_lin==0] = 1.0e-9 # prevents dead pixels
             self.doneTFM = True
 
         else:
             TFM_coeff_func = self.Kernel.get_function("TFM_coeff")
             TFM_coeff_func(cuda.Out(self.TFM_image), cuda.In(self.FMC), cuda.In(self.ArrayGPU), self.n_elem, self.Fs, cuda.In(self.z), self.nz, self.sample_length, self.Ts, self.Coeff_gpu,block=(self.blockSize,1,1), grid=(self.gridSize,1))
 
-        self.TFM_lin = self.TFM_image.reshape((self.ny,self.nz))
+        self.TFM_lin = np.rot90(self.TFM_image.reshape((self.ny,self.nz)),1)
         self.doneTFM = True
 
 
     def get_log_TFM(self):
-        if not self.donelog:
-            try:
-                self.processImage()
-            except:
-                raise Exception('Couldn''t produce a logarithmic TFM image')
+        #if not self.donelog:
+        TFM2 = abs(self.TFM_lin)
+        TFM2 = TFM2 / max(TFM2.flatten())
+        self.TFM_log = 20*np.log10(TFM2)
+        self.donelog = True
         return self.TFM_log
+    
+    def get_log_SCF_TFM(self,scf_power):
+        #if not self.donelog:
+        TFM1 = self.TFM_lin * (self.SCF_lin**scf_power)
+        TFM2 = abs(TFM1)
+        TFM3 = TFM2 / max(TFM2.flatten())
+        self.TFM_scf_log = 20*np.log10(TFM3)
+        self.donelog = True
+        return self.TFM_scf_log
 
     def printTFM(self,**kwargs):
         if 'type' not in kwargs:
