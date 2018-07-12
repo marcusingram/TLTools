@@ -72,7 +72,7 @@ __global__ void transform_tpoints_into_coeffs2GPU_kernel(
     if (idx_coeffline>total_coefflines) {return;}
 
 
-            // convert idx_coeffline to idx_tx and idx_zline using ind2sub:
+        // convert idx_coeffline to idx_tx and idx_zline using ind2sub:
         int size[4];
         int subs[4];
         size[3]=kernel_ProbeElementCount;
@@ -292,7 +292,6 @@ __global__ void TFM_coeff_timeOffset(float *dest, float *FMC, float *Elem, float
       tx_path = z_position*tx_path + Coeffs[tx_coeff_offset+2];
       tx_path = z_position*tx_path + Coeffs[tx_coeff_offset+3];
       tx_path = z_position*tx_path + Coeffs[tx_coeff_offset+4];
-      tx_delay = delays[i];
 
       for(int j=0; j<n_elem;j++){
          rx_coeff_offset = 5*y_location*n_elem + 5*j;
@@ -339,7 +338,6 @@ __global__ void TFM_coeff_SCF_timeOffset(float *dest, float *SCF, float *FMC, fl
       tx_path = z_position*tx_path + Coeffs[tx_coeff_offset+2];
       tx_path = z_position*tx_path + Coeffs[tx_coeff_offset+3];
       tx_path = z_position*tx_path + Coeffs[tx_coeff_offset+4];
-      tx_delay = delays[i];
 
       for(int j=0; j<n_elem;j++){
          rx_coeff_offset = 5*y_location*n_elem + 5*j;
@@ -474,7 +472,7 @@ __global__ void TFM_timeOffset(float *dest, float *FMC, float *Elem,float *txrx_
          rx_depth = Elem[3*j+2];
          delay = txrx_delays[i,j];
          rx_path = sqrt((rx_location-ydim[y_location])*(rx_location-ydim[y_location]) + (rx_depth-zdim[z_location])*(rx_depth-zdim[z_location]));
-         sample_truncated = floorf(fminf(fmaxf(((tx_path+rx_path) / speed - time_start)*delay*fs,0.0f),sample_length-2.0f));
+         sample_truncated = floorf(fminf(fmaxf(((tx_path+rx_path) / speed - time_start - delay)*fs,0.0f),sample_length-2.0f));
          sample_weight = fminf(fmaxf(time*fs-sample_truncated,0.0f),1.0f);
          final_sample = (i*n_elem+j)*sample_length + sample_truncated;
          accumulator = accumulator + (1.0-sample_weight)*FMC[final_sample] + sample_weight*FMC[final_sample+1];
@@ -508,7 +506,6 @@ __global__ void TFM_SCF_timeOffset(float *dest, float *SCF, float *FMC, float *E
       tx_location = Elem[3*i+1];
       tx_depth = Elem[3*i+2];
       tx_path = sqrt((tx_location-ydim[y_location])*(tx_location-ydim[y_location]) + (tx_depth-zdim[z_location])*(tx_depth-zdim[z_location]));
-      tx_delay = delays[i];
       for(int j=0; j<n_elem;j++){
          rx_location = Elem[3*j+1];
          rx_depth = Elem[3*j+2];

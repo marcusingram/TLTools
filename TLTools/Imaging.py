@@ -294,7 +294,8 @@ class PyTFM:
         if 'txrx_delays' in kwargs:
             do_timeOffset = True
             txrx_delays = kwargs['txrx_delays']
-            txrx_delays = 1.0/((1.0-txrx_delays).astype(np.float32))
+            txrx_delays = txrx_delays.astype(np.float32)
+            #txrx_delays = 1.0/((1.0-txrx_delays).astype(np.float32))
 
         if 'SCF' in kwargs:
             do_SCF = kwargs['SCF']
